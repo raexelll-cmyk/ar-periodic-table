@@ -1,0 +1,391 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>AR Periodic Table Explorer</title>
+
+<!-- MindAR image tracking -->
+<script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.1.4/dist/mindar-image.prod.js"></script>
+
+<!-- A-Frame -->
+<script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
+
+<!-- MindAR A-Frame integration -->
+<script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.1.4/dist/mindar-image-aframe.prod.js"></script>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+    background: #0f172a;
+}
+
+#header {
+    position: fixed;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 92%;
+    max-width: 420px;
+    padding: 13px;
+    text-align: center;
+    background: rgba(15,23,42,0.93);
+    color: white;
+    border: 1px solid #38bdf8;
+    border-radius: 12px;
+    z-index: 20;
+}
+
+#header h2 {
+    margin: 0 0 7px;
+    font-size: 18px;
+    color: #67e8f9;
+}
+
+#header p {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+#status {
+    position: fixed;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 380px;
+    background: rgba(15,23,42,0.95);
+    color: white;
+    border: 1px solid #38bdf8;
+    padding: 13px;
+    border-radius: 12px;
+    text-align: center;
+    font-size: 13px;
+    z-index: 20;
+}
+
+#status.detected {
+    border-color: #22c55e;
+    color: #86efac;
+}
+
+a-scene {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+</style>
+</head>
+
+<body>
+
+<div id="header">
+    <h2>⚛ AR PERIODIC TABLE EXPLORER</h2>
+    <p>
+        Scan an element card using your camera
+        to discover its 3D atomic structure.
+    </p>
+</div>
+
+<div id="status">
+    📷 Point your camera at an element card.
+</div>
+
+<a-scene
+    mindar-image="
+        imageTargetSrc: ./targets.mind;
+        autoStart: true;
+        uiLoading: yes;
+        uiScanning: yes;
+    "
+    color-space="sRGB"
+    renderer="colorManagement: true, physicallyCorrectLights"
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false">
+
+    <!-- HYDROGEN CARD: TARGET 0 -->
+    <a-entity
+        id="target-h"
+        mindar-image-target="targetIndex: 0">
+    </a-entity>
+
+    <!-- CARBON CARD: TARGET 1 -->
+    <a-entity
+        id="target-c"
+        mindar-image-target="targetIndex: 1">
+    </a-entity>
+
+    <!-- NITROGEN CARD: TARGET 2 -->
+    <a-entity
+        id="target-n"
+        mindar-image-target="targetIndex: 2">
+    </a-entity>
+
+    <!-- OXYGEN CARD: TARGET 3 -->
+    <a-entity
+        id="target-o"
+        mindar-image-target="targetIndex: 3">
+    </a-entity>
+
+    <!-- SODIUM CARD: TARGET 4 -->
+    <a-entity
+        id="target-na"
+        mindar-image-target="targetIndex: 4">
+    </a-entity>
+
+    <!-- CAMERA -->
+    <a-camera
+        position="0 0 0"
+        look-controls="enabled: false">
+    </a-camera>
+
+</a-scene>
+
+<script>
+
+// CHEMICAL ELEMENT DATA
+
+const elements = [
+    {
+        id: "target-h",
+        name: "HYDROGEN",
+        symbol: "H",
+        number: 1,
+        mass: "1.008",
+        shells: [1],
+        color: "#38bdf8"
+    },
+    {
+        id: "target-c",
+        name: "CARBON",
+        symbol: "C",
+        number: 6,
+        mass: "12.011",
+        shells: [2,4],
+        color: "#22c55e"
+    },
+    {
+        id: "target-n",
+        name: "NITROGEN",
+        symbol: "N",
+        number: 7,
+        mass: "14.007",
+        shells: [2,5],
+        color: "#f59e0b"
+    },
+    {
+        id: "target-o",
+        name: "OXYGEN",
+        symbol: "O",
+        number: 8,
+        mass: "15.999",
+        shells: [2,6],
+        color: "#ef4444"
+    },
+    {
+        id: "target-na",
+        name: "SODIUM",
+        symbol: "Na",
+        number: 11,
+        mass: "22.990",
+        shells: [2,8,1],
+        color: "#a78bfa"
+    }
+];
+
+const status = document.getElementById("status");
+
+// CREATE A SPHERE
+
+function makeSphere(parent, radius, color, position) {
+
+    const sphere = document.createElement("a-sphere");
+
+    sphere.setAttribute("radius", radius);
+    sphere.setAttribute("color", color);
+    sphere.setAttribute("position", position);
+
+    parent.appendChild(sphere);
+
+    return sphere;
+}
+
+// CREATE THE ATOM
+
+function createAtom(element) {
+
+    const target = document.getElementById(element.id);
+
+    // Atom group
+    const atom = document.createElement("a-entity");
+
+    atom.setAttribute("position", "0 0 0.28");
+
+    // Nucleus
+    const nucleus = document.createElement("a-entity");
+
+    makeSphere(
+        nucleus,
+        0.075,
+        "#ef4444",
+        "-0.035 0 0"
+    );
+
+    makeSphere(
+        nucleus,
+        0.075,
+        "#3b82f6",
+        "0.035 0 0"
+    );
+
+    makeSphere(
+        nucleus,
+        0.065,
+        "#ef4444",
+        "0 0.045 0.015"
+    );
+
+    atom.appendChild(nucleus);
+
+    // ELECTRON SHELLS
+
+    element.shells.forEach((electronCount,index) => {
+
+        const radius = 0.18 + (index * 0.13);
+
+        // Rotating orbit group
+        const orbit = document.createElement("a-entity");
+
+        orbit.setAttribute(
+            "animation",
+            "property: rotation; " +
+            "to: 0 0 360; " +
+            "dur: " + (3000 + index * 1000) + "; " +
+            "loop: true; " +
+            "easing: linear"
+        );
+
+        // Orbit ring
+        const ring = document.createElement("a-torus");
+
+        ring.setAttribute("radius", radius);
+        ring.setAttribute("radius-tubular", "0.006");
+        ring.setAttribute("color", element.color);
+
+        orbit.appendChild(ring);
+
+        // Electrons
+        for(let i=0; i<electronCount; i++) {
+
+            const angle =
+                (2 * Math.PI * i) / electronCount;
+
+            const x = radius * Math.cos(angle);
+            const y = radius * Math.sin(angle);
+
+            makeSphere(
+                orbit,
+                0.035,
+                "#facc15",
+                x + " " + y + " 0"
+            );
+
+        }
+
+        atom.appendChild(orbit);
+
+    });
+
+    target.appendChild(atom);
+
+    // ELEMENT NAME
+
+    const nameText = document.createElement("a-text");
+
+    nameText.setAttribute(
+        "value",
+        element.name + " (" + element.symbol + ")"
+    );
+
+    nameText.setAttribute(
+        "position",
+        "0 -0.55 0.10"
+    );
+
+    nameText.setAttribute("align","center");
+    nameText.setAttribute("color","#ffffff");
+    nameText.setAttribute("width","2.5");
+    nameText.setAttribute("scale","0.45 0.45 0.45");
+
+    target.appendChild(nameText);
+
+    // ELEMENT INFORMATION
+
+    const details = document.createElement("a-text");
+
+    details.setAttribute(
+        "value",
+        "Atomic Number: " + element.number +
+        "\nAtomic Mass: " + element.mass +
+        "\nElectrons: " + element.shells.join(", ")
+    );
+
+    details.setAttribute(
+        "position",
+        "0 -0.76 0.10"
+    );
+
+    details.setAttribute("align","center");
+    details.setAttribute("color","#ffffff");
+    details.setAttribute("width","2.5");
+    details.setAttribute("scale","0.30 0.30 0.30");
+
+    target.appendChild(details);
+
+}
+
+// CREATE ALL FIVE ATOMS
+
+elements.forEach(element => {
+
+    createAtom(element);
+
+    const target = document.getElementById(element.id);
+
+    
+    target.addEventListener("targetFound", function() {
+
+        status.classList.add("detected");
+
+        status.textContent =
+            "✅ " + element.name +
+            " detected! Symbol: " + element.symbol;
+
+    });
+
+ 
+    target.addEventListener("targetLost", function() {
+
+        status.classList.remove("detected");
+
+        status.textContent =
+            "📷 Point your camera at an element card.";
+
+    });
+
+});
+
+</script>
+
+</body>
+</html>
